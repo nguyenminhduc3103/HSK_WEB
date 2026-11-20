@@ -16,8 +16,9 @@
       <h1>Đề #{{ exam.id }} <span class="muted">({{ exam.mode }})</span></h1>
       {% if draft_count %}<p class="muted small">Đã khôi phục {{ draft_count }} câu bạn làm dở.</p>{% endif %}
     </div>
+    <!-- Đồng hồ: SVG clock inline (sạch, không cần thư viện icon) -->
     <div class="timer-pill" id="timer-pill">
-      <span aria-hidden="true">◷</span>
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       <span id="timer">00:00</span>
       <span class="muted hint" id="timer-hint">— tham khảo: Đọc 40 phút / Viết 25 phút</span>
     </div>
@@ -28,21 +29,42 @@
     {% if fill_groups %}
     <section class="card part">
       <h2>{{ part_labels["fill_blank"] }}</h2>
-      <div class="fillwrap">
-      {% for g in fill_groups %}
-      <div class="group">
-        <h3>Nhóm {{ g.group_no }} {% if g.group_no == 2 %}— hội thoại{% else %}— câu đơn{% endif %}:</h3>
-        <div class="choices" data-group="{{ g.group_no }}">
-          {% for ch in g.choices %}<button type="button" class="choice-btn" data-choice="{{ ch[0] }}" data-word="{{ ch[1] }}"><span class="choice-word zh">{{ ch[1] }}</span><small>{{ ch[0] }}</small></button>{% endfor %}
+      <!-- 2 cột: trái = câu hỏi (1fr), phải = Ngân hàng từ (320px, sticky) -->
+      <div class="exam-layout">
+        <div class="exam-questions">
+          <div class="fillwrap">
+          {% for g in fill_groups %}
+          <div class="group">
+            <h3>Nhóm {{ g.group_no }} {% if g.group_no == 2 %}— hội thoại{% else %}— câu đơn{% endif %}:</h3>
+            {% for q in g.questions %}
+            <!-- data-group để JS tìm ô chưa điền trong cùng nhóm dù ngân hàng nằm ở cột phải -->
+            <div class="q fillq" data-qid="{{ q.id }}" data-group="{{ g.group_no }}">
+              <div class="qtext zh">{{ loop.index }}. {{ q.payload["sentence"] }}</div>
+              <div class="fillslot">
+                <span class="blank zh"></span>
+                <!-- Nút "x" xóa nhanh: trả từ về ngân hàng (Yêu cầu 3 + 5) -->
+                <button type="button" class="btn-clear-blank" aria-label="Xóa ô này">✕</button>
+                <input type="hidden" name="a_{{ q.id }}" value="{{ q["draft"] }}">
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+          </div>
         </div>
-        {% for q in g.questions %}
-        <div class="q fillq" data-qid="{{ q.id }}">
-          <div class="qtext zh">{{ loop.index }}. {{ q.payload["sentence"] }}</div>
-          <div class="fillslot"><span class="blank zh"></span><input type="hidden" name="a_{{ q.id }}" value="{{ q["draft"] }}"></div>
-        </div>
-        {% endfor %}
-      </div>
-      {% endfor %}
+
+        <!-- Ngân hàng từ: sticky, 1 cột trên mobile (order -1) -->
+        <aside class="vocab-bank">
+          <p class="vocab-bank-title muted small">Ngân hàng từ</p>
+          {% for g in fill_groups %}
+          <div class="bank-group">
+            <h4>Nhóm {{ g.group_no }} — {% if g.group_no == 2 %}hội thoại{% else %}câu đơn{% endif %}</h4>
+            <div class="choices" data-group="{{ g.group_no }}">
+              {% for ch in g.choices %}<button type="button" class="choice-btn" data-choice="{{ ch[0] }}" data-word="{{ ch[1] }}"><span class="choice-word zh">{{ ch[1] }}</span><small>{{ ch[0] }}</small></button>{% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </aside>
       </div>
     </section>
     {% endif %}

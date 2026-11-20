@@ -10,11 +10,12 @@
 <main class="page">
   <h1>Kết quả — Đề #{{ exam.id }}</h1>
 
-  <div class="card score-hero">
-    {% set passed = attempt.total is not none and attempt.total >= pass_total %}
+  {% set passed = attempt.total is not none and attempt.total >= pass_total %}
+  <!-- Score Hero: nền gradient tuỳ Pass/Fail (Yêu cầu 1) -->
+  <div class="card score-hero {{ 'grad-pass' if passed else 'grad-fail' }}">
     <div class="total {{ 'pass' if passed else 'fail' }}">
       {{ attempt.total if attempt.total is not none else '?' }}
-      <span class="muted" style="font-size:1.2rem">/ 200</span>
+      <span class="muted score-denom">/ 200</span>
     </div>
     {% if passed %}
       <div><span class="badge ok">ĐẠT (≥ {{ pass_total }})</span></div>
@@ -27,6 +28,18 @@
     </div>
   </div>
 
+  <!-- CTA ôn tập từ sai: icon SVG book inline -->
+  <div class="cta-band">
+    <div>
+      <b>Chưa chắc với các từ bị sai?</b>
+      <span class="muted">Xem lại từ vựng bạn hay làm sai trước khi làm đề kế tiếp.</span>
+    </div>
+    <a class="btn" href="/review">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6c-3-2-7-2-10 0v12c3-2 7-2 10 0 3-2 7-2 10 0V6c-3-2-7-2-10 0Z"/><path d="M12 6v14"/></svg>
+      Ôn tập lại từ vựng sai
+    </a>
+  </div>
+
   {% if n_pending %}
   <div class="banner-warn">
     ⚠ Có {{ n_pending }} câu chấm bằng AI chưa ra kết quả (AI lỗi / bị giới hạn).
@@ -36,13 +49,21 @@
   </div>
   {% endif %}
 
+  <!-- Filter Tabs: Tất cả / Câu sai / Chưa chấm (Yêu cầu 1) -->
+  <div class="filter-tabs" role="tablist" aria-label="Lọc kết quả">
+    <button type="button" class="tab active" data-filter="all">Tất cả</button>
+    <button type="button" class="tab" data-filter="wrong">Câu sai</button>
+    <button type="button" class="tab" data-filter="pending">Chưa chấm</button>
+  </div>
+
   {% for p in parts %}
   <div class="card">
     <h2>{{ p.label }}</h2>
-    <p class="muted" style="margin-top:-4px">{{ p.n_ok }}/{{ p.rows | length }} câu đúng</p>
+    <p class="muted part-progress" data-progress>{{ p.n_ok }}/{{ p.rows | length }} câu đúng</p>
 
     {% for r in p.rows %}
-    <div class="resrow {{ 'rep' if r.reported }}">
+    <!-- class đúng/sai/pend để CSS tô viền trái + JS filter nhận diện -->
+    <div class="resrow {{ 'rep' if r.reported }} {{ 'res-correct' if r.a and r.a.is_correct is true }} {{ 'res-wrong' if r.a and r.a.is_correct is false }} {{ 'res-pending' if r.pending and r.user }}">
       <div class="qhead">
         <span class="qnum">{{ r.q.number }}</span>
         {% if r.reported %}<span class="badge" style="background:var(--surface-2);color:var(--muted)">đã báo lỗi — không tính điểm</span>{% endif %}
@@ -63,27 +84,37 @@
       </div>
       {% endif %}
 
+      <!-- Giải thích AI trong details/summary: SAI thì mở, ĐÚNG thì thu gọn (Yêu cầu 1) -->
       {% if r.fb and r.fb.explanation_vi %}
-      <div class="fb">
-        <b>Gỡ rối:</b> {{ r.fb.explanation_vi }}
-        {% if r.fb.grammar_tag %} <span class="muted small">({{ r.fb.grammar_tag }})</span>{% endif %}
-        {% if r.fb.corrected %}<div class="muted small">Gợi sửa: <span class="zh" style="font-size:1.15rem">{{ r.fb.corrected }}</span></div>{% endif %}
-      </div>
+      <details class="fb" {% if not (r.a and r.a.is_correct is true) %}open{% endif %}>
+        <summary>Gỡ rối của AI</summary>
+        <div class="fb-body">
+          {{ r.fb.explanation_vi }}
+          {% if r.fb.grammar_tag %} <span class="muted small">({{ r.fb.grammar_tag }}){% endif %}
+          {% if r.fb.corrected %}<div class="muted small" style="margin-top:6px">Gợi sửa: <span class="zh" style="font-size:1.15rem">{{ r.fb.corrected }}</span></div>{% endif %}
+        </div>
+      </details>
       {% endif %}
 
       {% if r.wrong_words %}
-      <div style="margin-top:6px">Sai từ:
+      <div class="wrongwords">Sai từ:
         {% for w in r.wrong_words %}
         <span class="wrongword">{{ w.hanzi }} <small>{{ w.meaning_vi }}</small></span>
         {% endfor %}
       </div>
       {% endif %}
 
-      <form method="post" action="/attempts/{{ attempt.id }}/report" class="report-form">
-        <input type="hidden" name="qid" value="{{ r.q.id }}">
-        <input type="text" name="note" placeholder="Báo câu lỗi (tuỳ chọn lý do)">
-        <button type="submit" class="btn small">Gửi</button>
-      </form>
+      <!-- Nút cờ: click mới hiện form báo lỗi -->
+      <div class="report-wrap">
+        <button type="button" class="btn-flag" data-report aria-label="Báo câu lỗi">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V4"/><path d="M4 4h11l-2 4 2 4H4"/></svg>
+        </button>
+        <form method="post" action="/attempts/{{ attempt.id }}/report" class="report-form" hidden>
+          <input type="hidden" name="qid" value="{{ r.q.id }}">
+          <input type="text" name="note" placeholder="Báo câu lỗi (tuỳ chọn lý do)">
+          <button type="submit" class="btn small">Gửi</button>
+        </form>
+      </div>
     </div>
     {% endfor %}
   </div>
@@ -91,5 +122,44 @@
 
   <p style="margin-top:20px"><a class="btn ghost" href="/">← Trang chủ</a></p>
 </main>
+<script>
+  // --- Filter Tabs: ẩn/hiện .resrow theo class res-correct/res-wrong/res-pending ---
+  const tabs = document.querySelectorAll(".tab");
+  tabs.forEach((tab) => tab.addEventListener("click", () => {
+    tabs.forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+    const f = tab.dataset.filter;
+    document.querySelectorAll(".resrow").forEach((row) => {
+      let show =
+        f === "all" ||
+        (f === "wrong" && row.classList.contains("res-wrong")) ||
+        (f === "pending" && row.classList.contains("res-pending"));
+      row.style.display = show ? "" : "none";
+      // phần nào trống hoàn toàn (không còn câu nào hiện) thì giấu tiêu đề
+    });
+    // ẩn card phần nếu toàn bộ .resrow bên trong bị filter
+    document.querySelectorAll(".card").forEach((card) => {
+      const rows = card.querySelectorAll(".resrow");
+      if (!rows.length) return;
+      const visible = [...rows].some((r) => r.style.display !== "none");
+      card.style.display = visible ? "" : "none";
+    });
+  }));
+
+  // --- Nút cờ: toggle hiện form báo lỗi ---
+  document.querySelectorAll(".btn-flag").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const form = btn.nextElementSibling;
+      const showing = !form.hidden;
+      form.hidden = showing;
+      if (!showing) {
+        btn.classList.add("open");
+        form.querySelector("input[type=text]").focus();
+      } else {
+        btn.classList.remove("open");
+      }
+    });
+  });
+</script>
 </body>
 </html>

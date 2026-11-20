@@ -35,15 +35,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---- Đọc 1: chip chọn từ → điền vào câu ----
   // Mỗi câu (.fillq) có 1 slot; bấm câu để chọn (highlight), bấm chip để gán chữ.
   // Hidden input name="a_<qid>" lưu LABEL (A/B/...) — đúng hợp đồng chấm.
+  // Ngân hàng từ giờ nằm ở cột phải (aside); câu hỏi và chip không còn chung
+  // .group, nên ghép cặp theo số nhóm (data-group).
   const fillGroups = document.querySelectorAll(".choices");
   let activeSlot = null; // .fillq đang chọn
 
+  const fillqsForGroup = (groupNo) =>
+    [...document.querySelectorAll(`.fillq[data-group="${groupNo}"]`)] || [];
+
   // Khôi phục hiển thị chữ (draft lưu label "A" → tra chữ từ word bank)
   document.querySelectorAll(".choices").forEach((groupEl) => {
+    const groupNo = groupEl.dataset.group;
     const words = {};
     groupEl.querySelectorAll(".choice-btn").forEach((c) => { words[c.dataset.choice] = c.dataset.word; });
-    // fillq nằm trong cùng .group với .choices
-    groupEl.closest(".group")?.querySelectorAll(".fillq").forEach((slot) => {
+    // fillq trong cùng số nhóm với .choices này
+    fillqsForGroup(groupNo).forEach((slot) => {
       const input = slot.querySelector("input[name^='a_']");
       const lab = input.value;
       if (lab && words[lab]) {
@@ -59,21 +65,48 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.querySelectorAll(".fillq").forEach((slot) => {
-    slot.addEventListener("click", () => {
+    slot.addEventListener("click", (e) => {
+      // click vào nút "x" thì xóa ô, không chọn
+      if (e.target.classList.contains("btn-clear-blank")) return;
       document.querySelectorAll(".fillq.active").forEach((o) => o.classList.remove("active"));
       slot.classList.add("active");
       activeSlot = slot;
     });
   });
 
+  // Nút "x" (btn-clear-blank): xóa ô + trả từ về ngân hàng (gỡ .in-use)
+  document.querySelectorAll(".btn-clear-blank").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const slot = btn.closest(".fillq");
+      const input = slot.querySelector("input[name^='a_']");
+      const prev = input.value || slot.dataset.prevChoice;
+      input.value = "";
+      const blank = slot.querySelector(".blank");
+      blank.textContent = "";
+      blank.classList.remove("filled");
+      slot.classList.remove("answered", "active");
+      slot.dataset.prevChoice = "";
+      if (prev) {
+        const chip = document.querySelector(
+          `.choices[data-group="${slot.dataset.group}"] .choice-btn[data-choice="${prev}"]`
+        );
+        if (chip) chip.classList.remove("in-use");
+      }
+      if (activeSlot === slot) activeSlot = null;
+      updateProgress();
+      scheduleSave();
+    });
+  });
+
   fillGroups.forEach((groupEl) => {
+    const groupNo = groupEl.dataset.group;
     groupEl.querySelectorAll(".choice-btn").forEach((chip) => {
       chip.addEventListener("click", () => {
         let target = activeSlot;
-        // Không chọn câu nào: gán cho câu chưa điền gần nhất trong nhóm này
+        // Không chọn câu nào: gán cho câu chưa điền trong nhóm này
         if (!target) {
-          const unfilled = [...(groupEl.closest(".group") || groupEl.parentElement).querySelectorAll(".fillq")];
-          target = unfilled.find((o) => !o.querySelector("input").value) || unfilled[0];
+          const unfilled = fillqsForGroup(groupNo).filter((o) => !o.querySelector("input").value);
+          target = unfilled[0];
         }
         if (!target) return;
         const input = target.querySelector("input[name^='a_']");

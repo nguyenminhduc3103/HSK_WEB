@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,11 +8,21 @@
 </head>
 <body>
 <main class="page">
-  <h1>Sinh đề thất bại</h1>
-  <div class="card">
-    <p>{{ error }}</p>
+  <!-- Empty / Error state: căn giữa màn hình -->
+  <div class="error-state">
+    <div class="error-emoji">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5"/><path d="M12 15.5h.01"/></svg>
+    </div>
+    <h1>Sinh đề thất bại</h1>
+    <!-- Thông báo lỗi đặt trong khung nền đỏ nhạt để nổi bật -->
+    <div class="error-box">
+      {{ error }}
+    </div>
     <p class="muted">Nhà cung cấp AI có thể đang giới hạn tần suất hoặc trả lời chậm — chờ vài phút rồi thử lại.</p>
-    <a class="btn ghost" href="/">← Trang chủ</a>
+    <div class="error-actions">
+      <a class="btn big" href="/">Về Trang Chủ</a>
+      <a class="btn ghost" href="/" onclick="location.reload(); return false;">Thử lại</a>
+    </div>
   </div>
 </main>
 </body>
