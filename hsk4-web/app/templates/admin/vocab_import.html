@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nhập từ vựng – Admin</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="page">
+  <h1>Nhập từ vựng</h1>
+
+  {% if error and not headers %}
+  <div class="card error">{{ error }} &nbsp;<a href="/admin/vocab/">← Quay lại</a></div>
+  {% else %}
+
+  <form method="post" action="/admin/vocab/import/confirm">
+    <input type="hidden" name="token" value="{{ token }}">
+
+    {% if error %}
+    <div class="card error">{{ error }}</div>
+    {% endif %}
+
+    {% if preview %}
+    <div class="card">
+      <h3>Xem trước ({{ total_rows }} dòng, hiển thị {{ preview|length }} đầu)</h3>
+      <table class="vocab">
+        <tr><th>Từ</th><th>Pinyin</th><th>Hán Việt</th><th>Nghĩa</th><th>Cấp</th><th>Ví dụ</th></tr>
+        {% for r in preview %}
+        <tr>
+          <td class="zh">{{ r.hanzi }}</td>
+          <td>{{ r.pinyin }}</td>
+          <td>{{ r.han_viet or '—' }}</td>
+          <td>{{ r.meaning_vi }}</td>
+          <td>{% if r.level is not none %}{{ r.level }}{% else %}—{% endif %}</td>
+          <td class="muted" style="font-size:0.85rem">{{ r.example_zh or '' }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% if total_rows > preview|length %}
+      <p class="muted">… còn {{ total_rows - preview|length }} dòng nữa sẽ được nhập với cùng mapping.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if headers %}
+    <div class="card">
+      <h3>Chỉnh cột (nếu nhận diện sai)</h3>
+      {% set fields = [
+        ("hanzi", "Từ mới (bắt buộc)"),
+        ("pinyin", "Phiên âm"),
+        ("meaning_vi", "Giải thích (bắt buộc)"),
+        ("example_zh", "Ví dụ (chữ Hán)"),
+        ("example_pinyin", "Phiên âm ví dụ"),
+        ("example_vi", "Dịch ví dụ"),
+        ("level", "Cấp (3/4)"),
+      ] %}
+      <table class="vocab">
+        {% for key, label in fields %}
+        <tr>
+          <td style="white-space:nowrap"><b>{{ label }}</b></td>
+          <td>
+            <select name="col_{{ key }}">
+              <option value="">— bỏ —</option>
+              {% for i in headers %}
+              <option value="{{ loop.index0 }}" {% if mapping and mapping.get(key) == loop.index0 %}selected{% endif %}>{{ headers[loop.index0] if headers[loop.index0] else '(trống)' }} (col {{ loop.index }})</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      <button type="submit">Xác nhận nhập</button>
+    </div>
+    {% endif %}
+  </form>
+  {% endif %}
+</main>
+</body>
+</html>

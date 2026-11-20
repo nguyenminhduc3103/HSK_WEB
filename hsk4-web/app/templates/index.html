@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HSK 4 — Luyện đề</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="page">
+  <header class="home-head">
+    <div>
+      <p class="eyebrow">HSK 4 · ĐỌC + VIẾT</p>
+      <h1>Luyện đề của bạn</h1>
+      <p class="muted">Chấm tự động · AI tạo đề từ {{ n_words }} từ vựng của bạn</p>
+    </div>
+    <a class="quiet-link" href="/review">Ôn từ sai <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="n">{{ n_words }}</div><div class="muted">từ vựng</div></div>
+    <div class="stat"><div class="n">{{ n_attempts }}</div><div class="muted">bài đã nộp</div></div>
+    <div class="stat"><div class="n">{{ n_wrong }}</div><div class="muted">từ cần ôn</div></div>
+  </div>
+
+  <section class="card create-card">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">LUYỆN TẬP</p>
+        <h2>Tạo đề mới</h2>
+        <p class="muted">Thời gian tạo thay đổi tùy tốc độ và giới hạn của nhà cung cấp AI.</p>
+      </div>
+    </div>
+    <div class="form-actions">
+      <form method="post" action="/exams" class="generation-form">
+        <input type="hidden" name="mode" value="full">
+        <button type="submit" class="btn"><span>Đề đầy đủ</span><small>55 câu</small></button>
+      </form>
+      <form method="post" action="/exams" class="generation-form">
+        <input type="hidden" name="mode" value="mini">
+        <button type="submit" class="btn ghost"><span>Đề mini</span><small>21 câu</small></button>
+      </form>
+    </div>
+    <div class="generation-state" id="generation-state" hidden role="status" aria-live="polite">
+      <div class="generation-copy"><span id="generation-message">Đang tạo đề…</span><span id="generation-elapsed">0 giây</span></div>
+      <div class="indeterminate-track"><span></span></div>
+      <p class="muted small">Có thể mất thêm thời gian nếu AI đang bận hoặc giới hạn tần suất.</p>
+    </div>
+  </section>
+
+  {% if exams %}
+  <section class="card">
+    <div class="section-heading">
+      <div><p class="eyebrow">THƯ VIỆN</p><h2>Đề của bạn</h2></div>
+      <span class="muted small">{{ exams|length }} đề gần đây</span>
+    </div>
+    <div class="exam-list">
+      {% for row in exams %}
+      {% set e = row.exam %}
+      <article class="exam-row">
+        <div class="exam-row-main">
+          <div class="exam-title-line">
+            <h3>Đề {{ row.label_no }}</h3>
+            <span class="badge status-{{ e.status }}">
+              {% if e.status == "ready" %}Sẵn sàng
+              {% elif e.status == "in_progress" %}Đang làm
+              {% elif e.status == "done" %}Đã hoàn thành
+              {% else %}Sinh lỗi{% endif %}
+            </span>
+          </div>
+          <p class="muted small">{{ "Đầy đủ" if e.mode == "full" else "Mini" }} · {{ e.created_at.strftime("%d/%m/%Y %H:%M") }}</p>
+          {% if e.status == "in_progress" and row.draft_count %}<p class="muted small">{{ row.draft_count }} câu đã lưu nháp</p>{% endif %}
+        </div>
+        <div class="exam-row-actions">
+          {% if e.status in ["ready", "in_progress"] %}
+          <a class="btn small-action" href="/exams/{{ e.id }}">{{ "Bắt đầu làm" if e.status == "ready" else "Tiếp tục" }}</a>
+          {% elif e.status == "done" and row.attempt and row.attempt.submitted_at %}
+          <a class="btn small-action" href="/attempts/{{ row.attempt.id }}">Xem kết quả</a>
+          <a class="btn ghost small-action" href="/exams/{{ e.id }}?retake=1">Làm lại</a>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if n_wrong %}
+  <section class="card review-card">
+    <div><h2>Từ cần ôn</h2><p class="muted">{{ n_wrong }} từ đang làm sai — đề kế tiếp sẽ ưu tiên đưa vào.</p></div>
+    <a class="btn ghost" href="/review">Mở danh sách</a>
+  </section>
+  {% endif %}
+
+  {% if history %}
+  <section class="card">
+    <div class="section-heading"><div><p class="eyebrow">KẾT QUẢ</p><h2>Lịch sử bài làm</h2></div></div>
+    <div class="hist">
+      {% for a in history %}
+      <a href="/attempts/{{ a.id }}">
+        <span>Bài #{{ a.id }} · Đề #{{ a.exam_id }}</span>
+        <span>
+          {% if a.total is not none %}
+          {{ a.total }}/200
+          {% if a.total >= pass_total %}<span class="badge ok">ĐẠT</span>
+          {% else %}<span class="badge bad">CHƯA ĐẠT</span>{% endif %}
+          {% endif %}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</main>
+<script src="/static/generation.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Từ cần ôn</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="page">
+  <h1>Từ cần ôn</h1>
+  <p class="muted">Các từ bạn đang làm sai — sẽ được ưu tiên đưa vào đề kế tiếp.</p>
+
+  {% if not items %}
+  <div class="card">🎉 Chưa có từ nào cần ôn. Làm thêm vài đề nhé!</div>
+  {% endif %}
+
+  {% for it in items %}
+  <div class="card">
+    <div class="qhead">
+      <span class="zh">{{ it.word.hanzi }}</span>
+      <span class="muted">{{ it.word.pinyin }}{% if it.word.han_viet %} [{{ it.word.han_viet }}]{% endif %} — {{ it.word.meaning_vi }}</span>
+    </div>
+    <p class="muted" style="margin-top:4px">
+      Sai {{ it.stat.wrong }} lần{% if it.stat.last_wrong_at %}, lần gần nhất {{ it.stat.last_wrong_at.strftime("%d/%m %H:%M") }}{% endif %}.
+    </p>
+    {% if it.word.example_zh %}
+    <div class="fb">
+      <span class="zh" style="font-size:1.2rem">{{ it.word.example_zh }}</span>
+      {% if it.word.example_vi %}<div class="muted small">{{ it.word.example_vi }}</div>{% endif %}
+    </div>
+    {% endif %}
+    <div class="report-form">
+      <form method="post" action="/review/{{ it.word.id }}">
+        <input type="hidden" name="action" value="remembered">
+        <button type="submit" class="btn small ok">Đã nhớ</button>
+      </form>
+      <form method="post" action="/review/{{ it.word.id }}">
+        <input type="hidden" name="action" value="again">
+        <button type="submit" class="btn small">Ôn lại</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+
+  <p style="margin-top:20px"><a class="btn ghost" href="/">← Trang chủ</a></p>
+</main>
+</body>
+</html>

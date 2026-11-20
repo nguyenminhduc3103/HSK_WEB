@@ -1,0 +1,22 @@
+# Deploy hsk4-web lên Render (xem mục 12 PLAN)
+# Cách: đẩy repo (private) lên GitHub, tạo service từ repo với render.yaml này.
+# Đặt DB trên Neon (Postgres free) rồi điền DATABASE_URL vào env bên dưới.
+services:
+  - type: web
+    name: hsk4-web
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        value: "postgresql+psycopg://USER:PASS@ep-xxx.ap-southeast-1.aws.neon.tech/hsk4"
+      - key: LLM_BASE_URL
+        value: "https://generativelanguage.googleapis.com/v1beta/openai/"
+      - key: LLM_API_KEY
+        value: "..."
+      - key: LLM_MODEL
+        value: "gemini-2.5-flash"
+      - key: ADMIN_PASSWORD
+        value: "..."

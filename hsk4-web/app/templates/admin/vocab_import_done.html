@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đã nhập – Admin</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="page">
+  <h1>Đã nhập từ vựng</h1>
+  <div class="card">
+    <p>
+      <b>Thêm:</b> {{ report.added }}
+      &nbsp;·&nbsp; <b>Cập nhật:</b> {{ report.updated }}
+      &nbsp;·&nbsp; <b>Bỏ (trùng):</b> {{ report.skipped }}
+    </p>
+    <p class="muted">Tổng số dòng hợp lệ trong file: {{ total }}</p>
+    <p><a href="/admin/vocab/">← Về danh sách từ</a></p>
+  </div>
+</main>
+</body>
+</html>

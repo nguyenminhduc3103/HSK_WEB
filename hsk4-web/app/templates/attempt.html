@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kết quả đề #{{ exam.id }}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="page">
+  <h1>Kết quả — Đề #{{ exam.id }}</h1>
+
+  <div class="card score-hero">
+    {% set passed = attempt.total is not none and attempt.total >= pass_total %}
+    <div class="total {{ 'pass' if passed else 'fail' }}">
+      {{ attempt.total if attempt.total is not none else '?' }}
+      <span class="muted" style="font-size:1.2rem">/ 200</span>
+    </div>
+    {% if passed %}
+      <div><span class="badge ok">ĐẠT (≥ {{ pass_total }})</span></div>
+    {% else %}
+      <div><span class="badge bad">CHƯA ĐẠT (cần ≥ {{ pass_total }})</span></div>
+    {% endif %}
+    <div class="score-sub">
+      <span>Đọc <b>{{ attempt.score_reading }}</b> / 100</span>
+      <span>Viết <b>{{ attempt.score_writing }}</b> / 100</span>
+    </div>
+  </div>
+
+  {% if n_pending %}
+  <div class="banner-warn">
+    ⚠ Có {{ n_pending }} câu chấm bằng AI chưa ra kết quả (AI lỗi / bị giới hạn).
+    <form method="post" action="/attempts/{{ attempt.id }}/regrade">
+      <button type="submit" class="btn small">Thử chấm lại</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% for p in parts %}
+  <div class="card">
+    <h2>{{ p.label }}</h2>
+    <p class="muted" style="margin-top:-4px">{{ p.n_ok }}/{{ p.rows | length }} câu đúng</p>
+
+    {% for r in p.rows %}
+    <div class="resrow {{ 'rep' if r.reported }}">
+      <div class="qhead">
+        <span class="qnum">{{ r.q.number }}</span>
+        {% if r.reported %}<span class="badge" style="background:var(--surface-2);color:var(--muted)">đã báo lỗi — không tính điểm</span>{% endif %}
+        {% if r.pending and r.user %}<span class="mark unk">chưa chấm (AI)</span>{% endif %}
+        {% if r.a and r.a.is_correct is true %}<span class="mark ok">✓ đúng</span>
+        {% elif r.a and r.a.is_correct is false %}<span class="mark bad">✗ sai</span>{% endif %}
+        {% if p.part == "make_sentence" and r.a and r.a.score is not none %}
+          <span class="muted">{{ r.a.score }}/8</span>{% endif %}
+      </div>
+
+      <div class="muted userans">Bạn: {{ r.user if r.user else "(bỏ trống)" }}</div>
+      {% set ans = ans_by_q[r.q.id] %}
+      {% if ans %}
+      <div class="muted userans">
+        {% if ans.order %}Đáp án: {{ ans.order }}
+        {% elif ans.label %}Đáp án: {{ ans.label }}
+        {% elif ans.chunks %}Đáp án: <span class="zh" style="font-size:1.15rem">{{ ans.chunks | join(" ") }}</span>{% endif %}
+      </div>
+      {% endif %}
+
+      {% if r.fb and r.fb.explanation_vi %}
+      <div class="fb">
+        <b>Gỡ rối:</b> {{ r.fb.explanation_vi }}
+        {% if r.fb.grammar_tag %} <span class="muted small">({{ r.fb.grammar_tag }})</span>{% endif %}
+        {% if r.fb.corrected %}<div class="muted small">Gợi sửa: <span class="zh" style="font-size:1.15rem">{{ r.fb.corrected }}</span></div>{% endif %}
+      </div>
+      {% endif %}
+
+      {% if r.wrong_words %}
+      <div style="margin-top:6px">Sai từ:
+        {% for w in r.wrong_words %}
+        <span class="wrongword">{{ w.hanzi }} <small>{{ w.meaning_vi }}</small></span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="post" action="/attempts/{{ attempt.id }}/report" class="report-form">
+        <input type="hidden" name="qid" value="{{ r.q.id }}">
+        <input type="text" name="note" placeholder="Báo câu lỗi (tuỳ chọn lý do)">
+        <button type="submit" class="btn small">Gửi</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <p style="margin-top:20px"><a class="btn ghost" href="/">← Trang chủ</a></p>
+</main>
+</body>
+</html>

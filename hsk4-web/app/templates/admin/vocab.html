@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Từ vựng – Admin</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="page">
+  <h1>Từ vựng <span class="muted">({{ count }} từ)</span></h1>
+
+  <form method="get" class="row">
+    <input type="text" name="q" value="{{ q }}" placeholder="Tìm theo chữ Hán / pinyin / nghĩa / Hán Việt…" style="flex:1;min-width:120px;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--fg)">
+    <button type="submit">Tìm</button>
+  </form>
+
+  <div class="card">
+    <h3>Nhập từ vựng từ Excel</h3>
+    <form method="post" action="/admin/vocab/import" enctype="multipart/form-data" class="row">
+      <input type="file" name="file" accept=".xlsx,.xlsm" required style="flex:1;min-width:120px">
+      <button type="submit">Chọn &amp; xem trước</button>
+    </form>
+    <p class="muted">Định dạng: STT | Từ mới | Phiên âm | Giải thích | Ví dụ (chữ hán) | Phiên âm | Dịch. Cột "Cấp" (3 hoặc 4) là tuỳ chọn.</p>
+  </div>
+
+  <div class="card">
+    <table class="vocab">
+      <tr><th>Từ</th><th>Pinyin</th><th>Nghĩa</th><th>Cấp</th><th>Ví dụ</th></tr>
+      {% for w in words %}
+      <tr>
+        <td class="zh">{{ w.hanzi }}<br><span class="muted" style="font-size:0.75rem">{% if w.han_viet %}{{ w.han_viet }}{% endif %}</span></td>
+        <td>{{ w.pinyin }}</td>
+        <td>{{ w.meaning_vi }}</td>
+        <td>{% if w.level %}{{ w.level }}{% else %}—{% endif %}</td>
+        <td class="muted" style="font-size:0.85rem">{% if w.example_zh %}{{ w.example_zh }}<br>{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">Chưa có từ vựng. Hãy nhập file Excel ở trên.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</main>
+</body>
+</html>

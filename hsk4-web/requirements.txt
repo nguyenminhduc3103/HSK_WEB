@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+sqlmodel
+openpyxl
+openai
+python-dotenv
+pydantic
+psycopg[binary]
+pytest
