@@ -102,7 +102,7 @@
 
     {% if make_qs %}
     <section class="card part"><h2>{{ part_labels["make_sentence"] }}</h2>
-      {% for q in make_qs %}<div class="q"><div class="qtext">Câu {{ q.number }} — Đặt câu với từ: <span class="zh">{{ q.payload["hanzi"] }}</span> <span class="muted">{{ q.payload["pinyin"] }}{% if q.payload["han_viet"] %} [{{ q.payload["han_viet"] }}]{% endif %} — {{ q.payload["meaning_vi"] }}</span></div>
+      {% for q in make_qs %}<div class="q"><div class="qtext">Câu {{ q.number }} — Đặt câu với từ: <span class="zh make-word">{{ q.payload["hanzi"] }}</span></div>
         <textarea name="a_{{ q.id }}" rows="2" class="qans" placeholder="Gõ câu của bạn bằng chữ Hán…">{{ q["draft"] }}</textarea><span class="char-count muted small" data-count-for="{{ q.id }}">{{ q["draft"] | length }} ký tự</span>
       </div>{% endfor %}
     </section>

@@ -40,6 +40,13 @@
     </a>
   </div>
 
+  {% if regrade_error %}
+  <div class="banner-warn" role="alert">
+    <b>AI vẫn chưa chấm được câu trả lời.</b>
+    <span>Nguyên nhân kỹ thuật đã được ghi vào log máy chủ. Bạn có thể thử lại sau; nếu lỗi tiếp tục, gửi log cho người quản trị.</span>
+  </div>
+  {% endif %}
+
   {% if n_pending %}
   <div class="banner-warn">
     ⚠ Có {{ n_pending }} câu chấm bằng AI chưa ra kết quả (AI lỗi / bị giới hạn).

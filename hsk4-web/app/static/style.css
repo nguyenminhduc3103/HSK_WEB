@@ -601,6 +601,9 @@ textarea.qans { resize: vertical; font-family: var(--font-zh); font-size: 1.25re
 /* char counter (Viết 2) */
 .char-count { display: block; margin-top: 5px; font-variant-numeric: tabular-nums; }
 
+/* Viết 2: chữ Hán to, nổi bật khi ẩn pinyin/nghĩa */
+.make-word { font-size: 1.9rem; font-weight: 700; }
+
 /* focus visible (toàn cục, a11y) */
 .choice-btn:focus-visible, .fillq:focus-visible, .chunk:focus-visible,
 .qans:focus-visible, .btn:focus-visible, .tab:focus-visible {

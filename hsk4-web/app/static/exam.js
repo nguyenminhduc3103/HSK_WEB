@@ -74,24 +74,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Nút "x" (btn-clear-blank): xóa ô + trả từ về ngân hàng (gỡ .in-use)
+  // Nút "x" (btn-clear-blank): xóa ô + trả từ về ngân hàng
   document.querySelectorAll(".btn-clear-blank").forEach((btn) => {
     btn.addEventListener("click", () => {
       const slot = btn.closest(".fillq");
       const input = slot.querySelector("input[name^='a_']");
-      const prev = input.value || slot.dataset.prevChoice;
       input.value = "";
       const blank = slot.querySelector(".blank");
       blank.textContent = "";
       blank.classList.remove("filled");
       slot.classList.remove("answered", "active");
       slot.dataset.prevChoice = "";
-      if (prev) {
-        const chip = document.querySelector(
-          `.choices[data-group="${slot.dataset.group}"] .choice-btn[data-choice="${prev}"]`
-        );
-        if (chip) chip.classList.remove("in-use");
-      }
+      refreshGroupInUse(slot.dataset.group);
       if (activeSlot === slot) activeSlot = null;
       updateProgress();
       scheduleSave();
@@ -114,24 +108,28 @@ document.addEventListener("DOMContentLoaded", () => {
         target.querySelector(".blank").textContent = chip.dataset.word;
         target.querySelector(".blank").classList.add("filled");
         target.classList.add("answered");
-        markChoiceUsed(groupEl, chip, target);
+        target.dataset.prevChoice = chip.dataset.choice;
+        refreshGroupInUse(groupNo);
         updateProgress();
         scheduleSave();
       });
     });
   });
 
-  function markChoiceUsed(groupEl, chip, target) {
-    // chip dùng cho câu khác → gỡ; dùng cho câu này → giữ
-    groupEl.querySelectorAll(".choice-btn").forEach((c) => c.classList.remove("in-use"));
-    chip.classList.add("in-use");
-    // giải phóng chữ đang gán cho target trước đó (nếu có)
-    const prev = target.dataset.prevChoice;
-    if (prev && prev !== chip.dataset.choice) {
-      const other = groupEl.querySelector(`.choice-btn[data-choice="${prev}"]`);
-      if (other) other.classList.remove("in-use");
-    }
-    target.dataset.prevChoice = chip.dataset.choice;
+  // Cờ "in-use" (gạch từ đã dùng): chip nào đang được ÍT NHẤT 1 ô trong
+  // nhóm dùng thì gạch. Tính lại từ tổng hợp để khi đổi câu 1 → câu 2,
+  // cả 2 từ cùng được gạch thay vì gạch "trượt" sang từ mới.
+  function refreshGroupInUse(groupNo) {
+    const groupEl = document.querySelector(`.choices[data-group="${groupNo}"]`);
+    if (!groupEl) return;
+    const inUse = new Set(
+      fillqsForGroup(groupNo)
+        .map((slot) => slot.dataset.prevChoice)
+        .filter(Boolean)
+    );
+    groupEl.querySelectorAll(".choice-btn").forEach((c) => {
+      c.classList.toggle("in-use", inUse.has(c.dataset.choice));
+    });
   }
 
   // ---- Viết 1: ghép cụm ----

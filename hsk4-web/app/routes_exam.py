@@ -11,6 +11,7 @@ POST /attempts/{id}/report  → 'Báo câu lỗi' (loại khỏi điểm + khôn
 Vòng đời đề: ready → in_progress (khi mở làm) → done (sau khi nộp chấm thành công).
 """
 import json
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -25,6 +26,7 @@ from .grading import PASS_TOTAL, grade_code, llm_grade, recompute_scores
 from .models import Answer, Attempt, DraftAnswer, Exam, Question, Report, Word, WordStat
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 templates = Jinja2Templates(directory="app/templates")
 
 
@@ -259,6 +261,11 @@ async def _grade_and_save(session: Session, exam: Exam,
         try:
             feedback = await llm_grade(pending_fs, pending_alt, pending_exp)
         except Exception:
+            logger.exception(
+                "LLM grading failed during submit: attempt_id=%s exam_id=%s "
+                "make_sentence=%d build_sentence=%d explanation=%d",
+                attempt.id, exam.id, len(pending_fs), len(pending_alt), len(pending_exp),
+            )
             feedback = {}
 
     fs_ids = {i["qid"] for i in pending_fs}
@@ -405,11 +412,18 @@ async def regrade(attempt_id: int, session: Session = Depends(get_session)):
             pending_exp.append({"qid": q.id, "correct": json.loads(q.answer_json),
                                 "user": raw, "context": json.loads(q.payload_json)})
 
+    regrade_error = False
     if pending_fs or pending_alt or pending_exp:
         try:
             feedback = await llm_grade(pending_fs, pending_alt, pending_exp)
         except Exception:
+            logger.exception(
+                "LLM grading failed during regrade: attempt_id=%s exam_id=%s "
+                "make_sentence=%d build_sentence=%d explanation=%d",
+                attempt.id, exam.id, len(pending_fs), len(pending_alt), len(pending_exp),
+            )
             feedback = {}
+            regrade_error = True
         fs_ids = {i["qid"] for i in pending_fs}
         alt_ids = {i["qid"] for i in pending_alt}
         for a in answers:
@@ -428,6 +442,8 @@ async def regrade(attempt_id: int, session: Session = Depends(get_session)):
         session.commit()
         recompute_scores(session, attempt.id)
         _update_word_stats(session, attempt.id)
+    if regrade_error:
+        return RedirectResponse(f"/attempts/{attempt_id}?regrade_error=1", status_code=302)
     return RedirectResponse(f"/attempts/{attempt_id}", status_code=302)
 
 
@@ -445,7 +461,8 @@ async def report_question(attempt_id: int, qid: int = Form(...),
 
 
 @router.get("/attempts/{attempt_id}", response_class=HTMLResponse)
-def attempt_page(attempt_id: int, request: Request, session: Session = Depends(get_session)):
+def attempt_page(attempt_id: int, request: Request, regrade_error: int = 0,
+                 session: Session = Depends(get_session)):
     attempt = session.get(Attempt, attempt_id)
     if not attempt:
         return HTMLResponse("Không tìm thấy.", status_code=404)
@@ -492,6 +509,7 @@ def attempt_page(attempt_id: int, request: Request, session: Session = Depends(g
         request, "attempt.html",
         {"attempt": attempt, "exam": exam, "rows": rows, "parts": parts,
          "pass_total": PASS_TOTAL, "n_pending": n_pending,
+         "regrade_error": bool(regrade_error),
          "ans_by_q": {q.id: (json.loads(q.answer_json) if q.answer_json else None)
                       for q in qs}},
     )

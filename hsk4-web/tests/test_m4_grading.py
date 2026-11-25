@@ -4,7 +4,7 @@ import pytest
 from sqlmodel import Session
 
 from app import models
-from app.grading import grade_code
+from app.grading import _llm_grade_prompt, grade_code
 
 
 def _q(part: str, answer_json: str = None, payload_json: str = "") -> models.Question:
@@ -14,6 +14,33 @@ def _q(part: str, answer_json: str = None, payload_json: str = "") -> models.Que
         answer_json=answer_json or "{}",
         target_word_ids_json="[]",
     )
+
+
+def test_grade_prompt_formats_reading_context_dict_safely():
+    prompt = _llm_grade_prompt(
+        [],
+        [],
+        [{
+            "qid": 42,
+            "correct": {"label": "B", "explanation_vi": "Đáp án đúng"},
+            "user": "A",
+            "context": {"question": "问题？", "passage": "测试文章。"},
+        }],
+    )
+
+    assert '"question": "问题？"' in prompt
+    assert '"passage": "测试文章。"' in prompt
+    assert "qid=42" in prompt
+
+
+def test_grade_prompt_truncates_long_reading_context():
+    prompt = _llm_grade_prompt(
+        [], [], [{"qid": 3, "correct": {}, "user": "C", "context": "测" * 300}]
+    )
+
+    context_line = next(line for line in prompt.splitlines() if "nội dung:" in line)
+    assert len(context_line.split("nội dung: ", 1)[1]) == 200
+
 
 
 def test_grade_code_reading_label():

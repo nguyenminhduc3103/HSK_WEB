@@ -7,6 +7,7 @@
   giải thích ngắn các câu Đọc 2/3 sai. Code kẹp score vào [0, 8].
 - recompute_scores(): quy đổi điểm theo số câu thực có + câu bị báo lỗi.
 """
+import json
 import unicodedata
 
 from pydantic import BaseModel, Field
@@ -129,7 +130,7 @@ def _llm_grade_prompt(fs_items: list[dict], alt_items: list[dict],
         for it in exp_items:
             lines.append(
                 f"qid={it['qid']} | đáp án: {it['correct']} | HS chọn: {it['user']} | "
-                f"nội dung: {it['context'][:200]}"
+                f"nội dung: {json.dumps(it['context'], ensure_ascii=False)[:200]}"
             )
         parts.append(
             "## Giải thích ngắn câu Đọc sai (1–2 câu, nêu lỗi chính, tag ngữ pháp):\n"
